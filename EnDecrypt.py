@@ -1,7 +1,7 @@
 from cryptography.fernet import Fernet 
 
 class _EnDecrypt:
-    def __init__(self, key=None):
+    def __init__(self, key):
         if key is None:
             key = Fernet.generate_key()
 
