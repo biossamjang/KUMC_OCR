@@ -13,7 +13,6 @@ from cryptography.fernet import Fernet as frt
 
 class OCR_Main:
     def __init__(self) -> None:
-        # self._crypt = crypt()
         self._SQL   = SQL()
 
     def _OCR_Connect(self, prefix ):
@@ -50,11 +49,14 @@ class OCR_Main:
             _URL = _PWV_Invoke_URL   # APIGW Invoke URL
             _KEY = _PWV_secret_key   # Secret Key    
 
+        # object storage 접속
         s3 = boto3.client(_service_name, endpoint_url= _endpoint_url, aws_access_key_id= _access_key,
                       aws_secret_access_key= _secret_key)
+        
         is_Break = False
         i_Count = 0
 
+        # 버킷에 등록된 파일정보 가져오기
         response = s3.list_objects(Bucket = _bucket_name, Delimiter = self.delimiter, MaxKeys= self.max_keys , Prefix = prefix + '/')
 
         i_Count = len(response.get('Contents'))
@@ -88,13 +90,18 @@ class OCR_Main:
                                         }
                                         ]
                             }
-
+                    # json 데이터 읽기
                     data = json.dumps(data)
+
+                    # cloud ocr 호출
                     response = requests.post(_URL, data=data, headers=header)
+
+                    # json 데이터 쓰기
                     res = json.loads(response.text)
 
                     for e in res['images']:
                         resArray = e.get('fields')
+                        
                     Result_Data = []
                     for list in resArray:
                         """ if list.get('name') == 'ID':    
@@ -113,25 +120,27 @@ class OCR_Main:
 
     def _DB_Connect( self, prefix, Result_Data, DSNNAME, DBUSER, DBPWD):
         
-        # cnxn = pyodbc.connect('DSN='+self.DSNNAME+';UID='+self.DBUSER+';PWD='+self.DBPWD)
+        # DB 접속 (접속정보 변경시 Config.py 재실행하여 생성된 config.ini 파일을 배포해야됨)
         cnxn = pyodbc.connect('DSN='+DSNNAME+';UID='+DBUSER+';PWD='+DBPWD)
 
         try:
             # 테스트용 삭제쿼리    
-            with cnxn.cursor() as curs:
-                sql = "DELETE FROM ANAM_CDW.CL_PFT;"    
-                curs.execute(sql)
+            # with cnxn.cursor() as curs:
+            #     sql = "DELETE FROM ANAM_CDW.CL_PFT;"    
+            #     curs.execute(sql)
             
             # OCR 탬플릿 추가시 쿼리문 작성 함수도 생성해야함.
             with cnxn.cursor() as curs:
                 
+                # 서식지별로 쿼리문 생성하여 가져오게 함.
                 if prefix == 'PFT':
                     sql = self._SQL._PFT()
                 elif prefix == 'PWV':    
                     sql = self._SQL._PWV()
 
-                print(sql)
-                print(Result_Data)
+                #print(sql)
+                #print(Result_Data)
+                # sql 실행
                 curs.execute(sql, Result_Data)
                 #curs.executemany(sql, Result_Data)
 
@@ -185,16 +194,10 @@ class OCR_Main:
 
         return os.path.join(base_path, relative_path)     
 
-    
 
 if __name__ == "__main__":
-    
     OCR_Main = OCR_Main()
     # PFT 처리
     OCR_Main._OCR_Connect('PFT')
     # PWV 처리        
-    #OCR_Main._OCR_Connect('PWV')
-else:
-    OCR_Main = OCR_Main()
-    # PFT 처리
-    OCR_Main._OCR_Connect('PFT')        
+    OCR_Main._OCR_Connect('PWV')
