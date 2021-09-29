@@ -62,6 +62,8 @@ class OCR_Main:
         i_Count = len(response.get('Contents'))
 
         Result_Data = []
+        Make_SQL_A = []
+        Make_SQL_B = []
 
         while True:
         
@@ -102,23 +104,40 @@ class OCR_Main:
                     for e in res['images']:
                         resArray = e.get('fields')
                         
+                    Make_SQL_A = []
+                    Make_SQL_B = []
                     Result_Data = []
+
                     for list in resArray:
                         """ if list.get('name') == 'ID':    
                             print('아이디', list.get('inferText'))
                         print(list.get('name'), ':', list.get('inferText')) """
+                        print(list.get('name'), ':', list.get('inferText'))
+
+                        if list.get('name') == 'Date':
+                            Make_SQL_A = Make_SQL_A + ['s'+ list.get('name')]    
+                            Make_SQL_B = Make_SQL_B + [':s'+ list.get('name')]    
+                        else :
+                            Make_SQL_A = Make_SQL_A + [list.get('name')]
+                            Make_SQL_B = Make_SQL_B + [':' + list.get('name')]
+                            
                         Result_Data = Result_Data + [list.get('inferText')]
                     #print('----------------------------------------') 
                     #print(resArray)
                     # print('========================================')
                     # print(Result_Data)
                     # print('****************************************')
-                    self._DB_Connect(prefix,Result_Data, _DSNNAME, _DBUSER, _DBPWD)    
+                    print(Make_SQL_A)
+                    print(Make_SQL_B)
+
+                    print(','.join(Make_SQL_A))
+                    print(','.join(Make_SQL_B))
+                    self._DB_Connect(prefix,Result_Data, Make_SQL_A, Make_SQL_B, _DSNNAME, _DBUSER, _DBPWD)    
                 if i_Count == 0 :
                     is_Break = True
                     break  
 
-    def _DB_Connect( self, prefix, Result_Data, DSNNAME, DBUSER, DBPWD):
+    def _DB_Connect( self, prefix, Result_Data, Make_SQL_A, Make_SQL_B, DSNNAME, DBUSER, DBPWD):
         
         # DB 접속 (접속정보 변경시 Config.py 재실행하여 생성된 config.ini 파일을 배포해야됨)
         cnxn = pyodbc.connect('DSN='+DSNNAME+';UID='+DBUSER+';PWD='+DBPWD)
@@ -134,24 +153,24 @@ class OCR_Main:
                 
                 # 서식지별로 쿼리문 생성하여 가져오게 함.
                 if prefix == 'PFT':
-                    sql = self._SQL._PFT()
+                    sql = self._SQL._PFT(Make_SQL_A, Make_SQL_B)
                 elif prefix == 'PWV':    
-                    sql = self._SQL._PWV()
+                    sql = self._SQL._PWV(Make_SQL_A, Make_SQL_B)
 
-                #print(sql)
-                #print(Result_Data)
+                print(sql)
+                print(Result_Data)
                 # sql 실행
                 curs.execute(sql, Result_Data)
                 #curs.executemany(sql, Result_Data)
 
             cnxn.commit()
 
-            # with cnxn.cursor() as curs:
-            #     sql = "SELECT * FROM ANAM_CDW.CL_PFT;"    
-            #     curs.execute(sql)
-            #     rs = curs.fetchall()
-            #     for row in rs:
-            #         print(row)
+            with cnxn.cursor() as curs:
+                sql = "SELECT * FROM ANAM_CDW.CL_PFT;"    
+                curs.execute(sql)
+                rs = curs.fetchall()
+                for row in rs:
+                    print(row)
 
         except Exception:
             cnxn.commit()
