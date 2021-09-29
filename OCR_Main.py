@@ -127,11 +127,7 @@ class OCR_Main:
                     # print('========================================')
                     # print(Result_Data)
                     # print('****************************************')
-                    print(Make_SQL_A)
-                    print(Make_SQL_B)
 
-                    print(','.join(Make_SQL_A))
-                    print(','.join(Make_SQL_B))
                     self._DB_Connect(prefix,Result_Data, Make_SQL_A, Make_SQL_B, _DSNNAME, _DBUSER, _DBPWD)    
                 if i_Count == 0 :
                     is_Break = True
